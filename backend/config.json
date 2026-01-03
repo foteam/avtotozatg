@@ -1,0 +1,6 @@
+﻿{
+  "BOT_API": "8591466870:AAFqxYRvSmNN7LP0U_ySn6C20YXc_9rszrY",
+  "MONGO_URI": "mongodb://megalotto:Sarik1212@ac-8bjv7oh-shard-00-00.nrfyno6.mongodb.net:27017,ac-8bjv7oh-shard-00-01.nrfyno6.mongodb.net:27017,ac-8bjv7oh-shard-00-02.nrfyno6.mongodb.net:27017/avtotoza?ssl=true&replicaSet=atlas-oatonc-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0",
+  "PORT": 5000,
+  "ADMIN_GROUP": "-5037490011"
+}
