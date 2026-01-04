@@ -1,5 +1,5 @@
 ﻿import { NavLink } from 'react-router-dom';
-import { Home, CreditCard, User, Newspaper, Shield } from 'lucide-react';
+import { Home, CreditCard, User, Newspaper, Shield, Car} from 'lucide-react';
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -25,6 +25,7 @@ export default function Navbar({ user_id }) {
         { name: 'Asosiy', to: '/', icon: <Home size={20} /> },
         { name: 'Yangiliklar', to: '/news', icon: <Newspaper size={20} /> },
         { name: 'Paketlar', to: '/packages', icon: <CreditCard size={20} /> },
+        { name: 'Garaj', to: '/garage', icon: <Car size={20} /> },
         { name: 'Xisobim', to: '/profile', icon: <User size={20} /> },
     ];
 

@@ -8,6 +8,9 @@ import MainAdmin from "./pages/admin/MainAdmin";
 import OwnerAdmin from "./pages/carwash_admin/CarwashAdmin";
 import Packages from './pages/Packages';
 import News from './pages/News';
+import Garage from './pages/Garage/Garage'
+import CarDetail from './pages/Garage/CarScreen';
+
 import Eruda from 'eruda'
 
 import WebApp from "@twa-dev/sdk";
@@ -137,6 +140,8 @@ function AppWrapper() {
                     <Route path="/admin" element={<MainAdmin />} />
                     <Route path="/packages" element={<Packages />} />
                     <Route path="/news" element={<News />} />
+                    <Route path="/garage" element={<Garage user_id={user?.id} />} />
+                    <Route path="/garage/:id" element={<CarDetail />} />
                     <Route path="/owner" element={<OwnerAdmin user_id={user?.id} />} />
                 </Routes>
             </AnimatePresence>
