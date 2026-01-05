@@ -112,7 +112,7 @@ export default function OwnerDashboard({ user_id }) {
             if (!res.data.exists) return [];
 
             return res.data.orders.filter(o =>
-                o.status === "pending" || o.status === "completed"
+                o.status === "pending" || o.status === "paid" || o.status === "completed"
             );
         },
         enabled: !!washQuery.data?._id,
@@ -235,7 +235,7 @@ export default function OwnerDashboard({ user_id }) {
             const commission = (wash.comission || 0) / 100; // 10% = 0.1
             const netIncome = price * (1 - commission);
 
-            if (!order.isAdmin){
+            if (!order.isAdmin || order.status === "paid"){
                 // Обновляем баланс на сервере
                 await axios.put(`${API_URL}/update/${user_id}`, {
                     balance: (wash.balance || 0) + netIncome
@@ -381,9 +381,17 @@ export default function OwnerDashboard({ user_id }) {
     // ================== ФИЛЬТРАЦИЯ ЗАКАЗОВ ==================
     const filteredOrders = orders.filter((o) => {
         if (filterStatus === "all") return true;
-        return o.status === filterStatus;
-    });
 
+        if (filterStatus === "processing") {
+            return o.status === "pending" || o.status === "paid";
+        }
+
+        if (filterStatus === "completed") {
+            return o.status === "completed";
+        }
+
+        return true;
+    });
 
     const uzFormat1 = /^\d{2}\s[A-Z]\s\d{3}\s[A-Z]{2}$/;   // 00 A 000 AA
     const uzFormat2 = /^\d{2}\s\d{3}\s[A-Z]{3}$/;          // 00 000 AAA
@@ -772,13 +780,13 @@ export default function OwnerDashboard({ user_id }) {
 
             {/* Фильтры заказов */}
             <div className="flex gap-2 overflow-x-auto">
-                {["all", "pending", "accepted", "completed"].map(status => (
+                {["all", "processing", "completed"].map(status => (
                     <button
                         key={status}
                         className={`px-3 py-1 rounded-full flex-shrink-0 ${filterStatus === status ? "bg-[#4D77FF] text-white" : "bg-[#EEEEEE] text-gray-700"}`}
                         onClick={() => setFilterStatus(status)}
                     >
-                        {status === "all" ? "Hammasi" : status === "pending" ? "Jarayonda" : status === "completed" ? "Qabul qilingan" : "Bajarilgan"}
+                        {status === "all" ? "Hammasi" : status === "processing" ? "Jarayonda" : status === "completed" ? "Qabul qilingan" : "Bajarilgan"}
                     </button>
                 ))}
             </div>
@@ -813,7 +821,7 @@ export default function OwnerDashboard({ user_id }) {
 
                                 <div className="flex items-center gap-3 mt-3 md:mt-0">
                   <span className={`text-sm font-semibold ${order.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {order.status === 'completed' ? 'Bajarilgan' : order.status === 'pending' ? 'Qabul qilingan' : 'Jarayonda'}
+                    {order.status === 'completed' ? 'Bajarilgan' : order.status === 'pending' || order.status === "paid" ? 'Qabul qilingan' : 'Jarayonda'}
                   </span>
 
                                     {order.status !== "completed" && (

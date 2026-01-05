@@ -348,7 +348,7 @@ export default function WashPage() {
             washId: washData._id,
             carNumber,
             userId: user_id,
-            priceType: `${selectedPrice.type} – ${finalPrice}`,
+            priceType: `${selectedPrice.type} – ${selectedPrice.price}`,
             phone: user.phone,
             slot: selectedSlot,
             paymentMethod // 👈 ВАЖНО

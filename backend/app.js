@@ -223,6 +223,7 @@ bot.on('message', async (ctx) => {
         await sendSMS(washOwner.phone, `AvtoToza. Sizning moykangizda yangi buyurtma! Avtomobil raqami: ${booking.carNumber} , tel: ${booking.phoneNumber} , vaqt: ${booking.slot}`);
 
         await ctx.replyWithLocation(carwash.location[0], carwash.location[1]);
+        await booking.set("status", "paid")
 
         await bot.telegram.sendMessage(
             carwash.groupId,
@@ -257,10 +258,12 @@ bot.action(/^completed:(.+)$/, async (ctx) => {
 
     const oldText = ctx.update.callback_query.message.text;
 
-    // inc owner balance
-    let price = Number(order.priceType.split(" – ")[1]);
-    let net = price - (price * wash.comission / 100)
-    await wash.inc("balance", net)
+    if (order.status === "paid") {
+        // inc owner balance
+        let price = Number(order.priceType.split(" – ")[1]);
+        let net = price - (price * wash.comission / 100)
+        await wash.inc("balance", net)
+    }
 
     // Обновляем статус заказа
     order.status = "completed";  // или "done", в зависимости от схемы
@@ -278,6 +281,27 @@ bot.action(/^completed:(.+)$/, async (ctx) => {
     , {reply_markup: {inline_keyboard: []}, parse_mode: "Markdown"});
     await bot.telegram.sendMessage(user.user_id, `#${order_id} raqamli buyurtmangiz bajarildi va olib ketishga tayyor!\n\n*Avtomobil raqami:* ${order.carNumber}\n*Berilgan vaqt (bugun):* ${order.slot}\n*Avtomoyka:* ${wash.name}\n*Manzil:* ${wash.address}\n*Tel:* ${washOwner.phone}`,
         {parse_mode: "Markdown"})
+});
+
+bot.action(/^cancel:(.+)$/, async (ctx) => {
+    const order_id = ctx.match[1];
+    const order = await Booking.findOne({order_id: order_id});
+    if (!order) {return}
+    if (order.status === "completed") {return ctx.replyWithMarkdown("Ushbu buyurtma bajarilgan!");}
+    const user = await User.findOne({user_id: order.fromUser});
+    const wash = await Wash.findOne({_id: order.wash});
+    const washOwner = await WashOwner.findOne({carwash: order.wash})
+    await ctx.answerCbQuery();
+
+    const oldText = ctx.update.callback_query.message.text;
+
+    // Обновляем статус заказа
+    order.status = "canceled";  // или "done", в зависимости от схемы
+    await order.save();
+
+    await ctx.editMessageText(
+        oldText + `\n\n🔔 O'zgarish: #${order_id} raqamli buyurtma bekor qilindi!`
+        , {reply_markup: {inline_keyboard: []}, parse_mode: "Markdown"});
 });
 
 bot.launch();
@@ -309,6 +333,21 @@ Wash.prototype.dec = function(field, value = 1) {
 };
 
 Wash.prototype.set = function(field, value) {
+    this[field] = value;
+    return this.save();
+};
+
+Booking.prototype.inc = function(field, value = 1) {
+    this[field] += value;
+    return this.save();
+};
+
+Booking.prototype.dec = function(field, value = 1) {
+    this[field] -= value;
+    return this.save();
+};
+
+Booking.prototype.set = function(field, value) {
     this[field] = value;
     return this.save();
 };

@@ -48,9 +48,9 @@ export default (bot) => {
             // 3️⃣ Создаём бронирование
             const booking = new Booking({
                 ...req.body,
-                price: finalPrice,
+                price: originalPrice,
                 status: paymentMethod === "cash"
-                    ? "created"
+                    ? "pending"
                     : "created"
             });
 
@@ -77,7 +77,8 @@ export default (bot) => {
                         parse_mode: "Markdown",
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: "Bajarildi", callback_data: "completed:" + booking.order_id }]
+                                [{ text: "Bajarildi", callback_data: "completed:" + booking.order_id }],
+                                [{ text: "Bekor qilish", callback_data: "cancel:" + booking.order_id }]
                             ]
                         }
                     }
