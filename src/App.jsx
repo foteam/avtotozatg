@@ -10,6 +10,7 @@ import Packages from './pages/Packages';
 import News from './pages/News';
 import Garage from './pages/Garage/Garage'
 import CarDetail from './pages/Garage/CarScreen';
+import AddCar from './pages/Garage/AddCar.jsx';
 
 import Eruda from 'eruda'
 
@@ -141,6 +142,7 @@ function AppWrapper() {
                     <Route path="/packages" element={<Packages />} />
                     <Route path="/news" element={<News />} />
                     <Route path="/garage" element={<Garage user_id={user?.id} />} />
+                    <Route path="/garage/add" element={<AddCar user_id={user?.id} />} />
                     <Route path="/garage/:id" element={<CarDetail />} />
                     <Route path="/owner" element={<OwnerAdmin user_id={user?.id} />} />
                 </Routes>

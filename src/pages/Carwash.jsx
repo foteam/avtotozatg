@@ -48,6 +48,9 @@ export default function WashPage() {
     const [selectedPrice, setSelectedPrice] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
+    const [selectedCar, setSelectedCar] = useState(null);
+    const [showCarSelect, setShowCarSelect] = useState(false);
+
     const [carNumber, setCarNumber] = useState('');
     const [error, setError] = useState("");
     const uzFormat1 = /^\d{2}\s[A-Z]\s\d{3}\s[A-Z]{2}$/;   // 00 A 000 AA
@@ -60,6 +63,7 @@ export default function WashPage() {
     const queryClient = useQueryClient();
 
     const [paymentMethod, setPaymentMethod] = useState("card"); // card | cash
+    const [showCashWarning, setShowCashWarning] = useState(false);
 
     useEffect(() => {
         WebApp.BackButton.show();
@@ -236,7 +240,24 @@ export default function WashPage() {
             queryClient.invalidateQueries(['bookings', washData._id]);
         }
     });
+    // ================== ЗАГРУЗКА АВТО ИЗ ГАРАЖА ==================
+    const { data: userCars = [], isLoading: carsLoading } = useQuery({
+        queryKey: ["userCars", user_id],
+        queryFn: async () => {
+            const res = await axios.get(
+                `${USER_API_URL}/garage/cars/${user_id}`
+            );
+            return res.data.cars || [];
+        },
+        enabled: !!user_id
+    });
 
+    useEffect(() => {
+        if (selectedCar) {
+            setCarNumber(formatCarNumber(selectedCar.plateNumber));
+            setError("");
+        }
+    }, [selectedCar]);
     // ================== ФУНКЦИИ ==================
 /*    const getDiscountedPrice = (price) => {
         if (user?.promoCode && user?.promoCodeDiscount) {
@@ -299,11 +320,7 @@ export default function WashPage() {
         }
         return price;
     };
-    const handleBooking = async () => {
-        if (!carNumber.trim()) return alert("Iltimos, avtomobil raqamini kiriting!");
-        if (!selectedPrice) return alert("Iltimos, turini tanlang!");
-        if (!selectedSlot) return alert("Iltimos, vaqtni tanlang!");
-
+    const submitBooking = () => {
         const now = new Date();
         const MIN_DIFF = 20 * 60 * 1000; // 20 минут
 
@@ -353,6 +370,18 @@ export default function WashPage() {
             slot: selectedSlot,
             paymentMethod // 👈 ВАЖНО
         });
+    }
+    const handleBooking = async () => {
+        if (error !== "") return alert("Iltimos, avtomobil raqamini kiriting!");
+        if (!selectedPrice) return alert("Iltimos, turini tanlang!");
+        if (!selectedSlot) return alert("Iltimos, vaqtni tanlang!");
+
+        // ⛔️ если наличка — сначала предупреждение
+        if (paymentMethod === "cash") {
+            setShowCashWarning(true);
+            return;
+        }
+        submitBooking();
     };
 
     // ================== КАРТА ==================
@@ -372,11 +401,56 @@ export default function WashPage() {
             map.geoObjects.add(placemark);
         });
     }, [washData]);
+    function Skeleton({ className = "" }) {
+        return (
+            <div
+                className={`bg-gray-200/80 rounded-xl animate-pulse ${className}`}
+            />
+        );
+    }
+    function WashPageSkeleton() {
+        return (
+            <div className="min-h-screen w-screen bg-[#EEEEEE] p-4 sm:p-6 md:p-8">
+
+                {/* Banner */}
+                <Skeleton className="w-full h-64 rounded-3xl mb-6" />
+
+                {/* Title */}
+                <Skeleton className="h-6 w-2/3 mb-3" />
+                <Skeleton className="h-4 w-1/3 mb-6" />
+
+                {/* Description */}
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-5/6 mb-2" />
+                <Skeleton className="h-4 w-4/6 mb-6" />
+
+                {/* Prices */}
+                <Skeleton className="h-5 w-40 mb-4" />
+
+                <div className="space-y-4 mb-6">
+                    <Skeleton className="h-14 w-full rounded-2xl" />
+                    <Skeleton className="h-14 w-full rounded-2xl" />
+                    <Skeleton className="h-14 w-full rounded-2xl" />
+                </div>
+
+                {/* Slots */}
+                <Skeleton className="h-5 w-32 mb-3" />
+                <div className="flex gap-3 mb-6">
+                    <Skeleton className="h-10 w-20 rounded-2xl" />
+                    <Skeleton className="h-10 w-20 rounded-2xl" />
+                    <Skeleton className="h-10 w-20 rounded-2xl" />
+                </div>
+
+                {/* Button */}
+                <Skeleton className="h-12 w-full rounded-2xl mt-8" />
+            </div>
+        );
+    }
 
 
-
-    if (washLoading || userLoading) return <div
-        className="w-screen h-screen flex justify-center items-center text-gray-600 text-lg">Yuklanmoqda...</div>;
+    if (washLoading || userLoading) {
+        return <WashPageSkeleton />;
+    }
     if (!washData) return <div>Moyka topilmadi</div>;
     const basePrice = selectedPrice ? Number(selectedPrice.price) : 0;
     const discountedPrice = selectedPrice ? getDiscountedPrice(basePrice) : 0;
@@ -418,16 +492,52 @@ export default function WashPage() {
 
             {/* Авто номер */}
             <motion.div {...fade(0.15)}>
+
+                {/* Если есть авто — кнопка выбора */}
+                {userCars.length > 0 && (
+                    <button
+                        onClick={() => setShowCarSelect(true)}
+                        className="
+                mb-2 w-full
+                bg-white
+                border border-gray-300
+                rounded-2xl
+                px-4 py-3
+                text-left
+                shadow-sm
+                active:scale-[0.98]
+                transition
+            "
+                    >
+                        {selectedCar ? (
+                            <div className="flex justify-between items-center">
+                    <span className="font-medium">
+                        {selectedCar.brand} {selectedCar.model}
+                    </span>
+                                <span className="font-plate tracking-widest">
+                        {formatCarNumber(selectedCar.plateNumber)}
+                    </span>
+                            </div>
+                        ) : (
+                            <span className="text-gray-500">
+                    🚗 Avtomobilni tanlash
+                </span>
+                        )}
+                    </button>
+                )}
+
+                {/* Ручной ввод */}
                 <input
                     type="text"
                     placeholder="Avtomobil raqamini kiriting"
                     value={carNumber}
                     onChange={e => handleInput(e.target.value)}
-                    className={`w-full p-3 rounded-2xl border ${
+                    disabled={!!selectedCar}
+                    className={`w-full p-3 plate-input rounded-2xl border ${
                         error ? "border-red-500" : "border-gray-300"
                     } focus:outline-none focus:ring-2 ${
                         error ? "focus:ring-red-500" : "focus:ring-[#4D77FF]"
-                    } mb-2`}
+                    } disabled:bg-gray-100 mb-2`}
                 />
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -545,6 +655,53 @@ export default function WashPage() {
                 ))}
             </motion.div>
 
+            {showCashWarning && (
+                <motion.div
+                    className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: "spring", damping: 18 }}
+                        className="bg-white rounded-3xl p-5 w-full max-w-md shadow-xl"
+                    >
+                        <div className="flex items-center gap-2 mb-3 text-orange-600">
+                            <FontAwesomeIcon icon={faTriangleExclamation} />
+                            <h3 className="font-bold text-lg">Diqqat!</h3>
+                        </div>
+
+                        <p className="text-gray-700 text-sm mb-4 leading-relaxed">
+                            Siz <b>naqd pul</b> orqali bron qilmoqdasiz.
+                            Agar belgilangan vaqtda kelmasangiz, avtomoyka sizni keyingi bronlardan
+                            <b> vaqtincha bloklashi</b> mumkin.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowCashWarning(false)}
+                                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold"
+                            >
+                                Bekor qilish
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setShowCashWarning(false);
+                                    submitBooking();
+                                }}
+                                className="flex-1 py-3 rounded-2xl bg-[#4D77FF] text-white font-semibold"
+                            >
+                                Tasdiqlayman
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+
             {/* Способ оплаты */}
             <motion.div className="flex gap-3 mb-6" {...fade(0.6)}>
                 <button
@@ -602,6 +759,135 @@ export default function WashPage() {
                     `To‘lov qilish — ${basePrice.toLocaleString()} so'm`
                 )}
             </motion.button>
+            <AnimatePresence>
+                {showCarSelect && (
+                    <motion.div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", damping: 20 }}
+                            className="
+                    w-full max-w-md
+                    bg-white
+                    rounded-3xl
+                    shadow-2xl
+                    overflow-hidden
+                "
+                        >
+                            {/* HEADER */}
+                            <div className="p-5 border-b">
+                                <h3 className="text-lg font-semibold">
+                                    Avtomobilni tanlang
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                    Bron qilish uchun avtomobilni tanlang
+                                </p>
+                            </div>
+
+                            {/* LIST */}
+                            <div className="p-4 grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto">
+
+                                {userCars.map(car => (
+                                    <button
+                                        key={car._id}
+                                        onClick={() => {
+                                            setSelectedCar(car);
+                                            setShowCarSelect(false);
+                                        }}
+                                        className="
+                                relative
+                                h-32
+                                rounded-2xl
+                                overflow-hidden
+                                shadow
+                                active:scale-[0.98]
+                                transition
+                                text-left
+                            "
+                                    >
+                                        {/* BACKGROUND */}
+                                        <img
+                                            src={car.image || 'https://i.ibb.co/R4cLCjgX/Chevrolet-Equinox-Mk3f-Premier-2020-1000-0005.jpg'}
+                                            alt=""
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                        />
+
+                                        {/* OVERLAY */}
+                                        <div className="absolute inset-0 bg-black/40" />
+
+                                        {/* CONTENT */}
+                                        <div className="relative z-10 h-full flex flex-col justify-between p-4 text-white">
+
+                                            <div>
+                                                <p className="text-sm opacity-80">
+                                                    {car.brand}
+                                                </p>
+                                                <p className="text-lg font-semibold leading-tight">
+                                                    {car.model}
+                                                </p>
+                                            </div>
+
+                                            <div className="
+                                    self-start
+                                    bg-white/90
+                                    text-black
+                                    font-plate
+                                    tracking-widest
+                                    px-3 py-1
+                                    rounded-lg
+                                ">
+                                                {formatCarNumber(car.plateNumber)}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                {/* ADD NEW CAR */}
+                                <button
+                                    onClick={() => {
+                                        setShowCarSelect(false);
+                                        navigate("/garage/add");
+                                    }}
+                                    className="
+                            h-20
+                            rounded-2xl
+                            border-2 border-dashed
+                            border-gray-300
+                            flex items-center justify-center
+                            text-gray-500
+                            font-medium
+                            hover:bg-gray-50
+                        "
+                                >
+                                    + Yangi avtomobil qo‘shish
+                                </button>
+                            </div>
+
+                            {/* FOOTER */}
+                            <div className="p-4 border-t">
+                                <button
+                                    onClick={() => setShowCarSelect(false)}
+                                    className="
+                            w-full py-3
+                            rounded-2xl
+                            bg-gray-100
+                            font-semibold
+                        "
+                                >
+                                    Bekor qilish
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }

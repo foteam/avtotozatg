@@ -40,21 +40,32 @@ const CarSchema = new mongoose.Schema(
 
         plateNumber: {
             type: String,
-            required: true,
-            uppercase: true,
-            trim: true,
-            index: true,
             // ❗ храним БЕЗ пробелов → форматируем на фронте
         },
 
         bodyType: {
             type: String,
-            enum: ["sedan", "suv", "hatchback", "coupe", "wagon", "pickup", "van"],
+            enum: [
+                "Sedan",
+                "Hatchback",
+                "Universal",
+                "SUV",
+                "Crossover",
+                "Pickup",
+                "Minivan"
+            ],
         },
 
         fuelType: {
             type: String,
-            enum: ["petrol", "gas", "diesel", "hybrid", "electric"],
+            enum: [
+                "Benzin",
+                "Gaz",
+                "Benzin + Gaz",
+                "Dizel",
+                "Elektr",
+                "Gibrid"
+            ],
         },
 
         // 🖼 Фото авто

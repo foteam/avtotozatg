@@ -42,7 +42,7 @@ router.get('/garage/cars/:user_id', async (req, res) => {
         }
 
         // 2️⃣ Получаем автомобили
-        const cars = await Car.find({ userId: user._id })
+        const cars = await Car.find({ user_id: user_id })
             .sort({ isPrimary: -1, createdAt: -1 }) // основной сверху
             .lean();
 
@@ -126,7 +126,7 @@ router.post('/garage/car/add', async (req, res) => {
 
         // 3️⃣ Проверка: есть ли уже такое авто у пользователя
         const exists = await Car.findOne({
-            userId: user._id,
+            user_id: user_id,
             plateNumber: normalizedPlate
         });
 
@@ -140,14 +140,14 @@ router.post('/garage/car/add', async (req, res) => {
         // 4️⃣ Если авто делаем основным — снимаем флаг с других
         if (isPrimary === true) {
             await Car.updateMany(
-                { userId: user._id },
+                { user_id: user._id },
                 { $set: { isPrimary: false } }
             );
         }
 
         // 5️⃣ Создаём автомобиль
         const car = await Car.create({
-            userId: user._id,
+            user_id: user_id,
             brand,
             model,
             year,

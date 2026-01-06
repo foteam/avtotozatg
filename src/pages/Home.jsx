@@ -128,16 +128,44 @@ export default function Home({ user_id }) {
         return deg * (Math.PI / 180);
     }
 
-    // ================== UI ==================
-    if (isLoading)
+    function Skeleton({ className = "" }) {
         return (
-            <motion.div
-                className="p-4 text-center text-gray-600 w-screen h-screen flex items-center justify-center"
-                {...fade(0.05)}
-            >
-                Avtomoykalar yuklanmoqda...
-            </motion.div>
+            <div className={`bg-gray-200/80 rounded-xl animate-pulse ${className}`} />
         );
+    }
+    function HomeSkeleton() {
+        return (
+            <div className="min-h-screen w-screen bg-[#EEEEEE] p-4 sm:p-6 md:p-8">
+
+                {/* Logo */}
+                <div className="flex justify-center mt-20 mb-6">
+                    <Skeleton className="h-16 w-40 rounded-xl" />
+                </div>
+
+                {/* Search */}
+                <Skeleton className="h-12 w-full rounded-2xl mb-6" />
+
+                {/* Subscribe button */}
+                <Skeleton className="h-12 w-full rounded-2xl mb-6" />
+
+                {/* Video */}
+                <Skeleton className="h-48 w-full rounded-2xl mb-6" />
+
+                {/* Carwash cards */}
+                <div className="grid grid-cols-1 gap-6">
+                    <Skeleton className="h-48 rounded-2xl" />
+                    <Skeleton className="h-48 rounded-2xl" />
+                    <Skeleton className="h-48 rounded-2xl" />
+                </div>
+            </div>
+        );
+    }
+
+    // ================== UI ==================
+    if (isLoading) {
+        return <HomeSkeleton />;
+    }
+
 
     if (isError)
         return (

@@ -9,6 +9,7 @@ export default {
     extend: {
       fontFamily: {
         brandFont: ["brandFont", "Kanit Cyrillic"],
+        plate: ["PlateNumber", "FE-FONT"],
       }
     },
   },

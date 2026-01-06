@@ -17,6 +17,8 @@ import WashOwner from './models/carwash_owner_model.js';
 
 import config from "./config.json" with {type: "json"};
 
+import { startCarCleanlinessCron } from "./cron/carCleanliness.cron.js";
+
 import {sendSMS} from './eskiz.js'
 
 const app = express();

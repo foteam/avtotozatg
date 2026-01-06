@@ -100,7 +100,19 @@ input, textarea {
   font-style: normal;
   font-display: swap;
 }
-
+/* Placeholder обычным брендовым шрифтом */
+.plate-input::placeholder {
+  font-family: 'brandFont'; /* или конкретно брендовый шрифт */
+  font-weight: 400;
+  letter-spacing: normal;
+}
+@font-face {
+  font-family: "PlateNumber";
+  src: url("./assets/fonts/FE-FONT.ttf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 /* Пример для Tailwind: глобальный базовый стиль */
 body {
   font-family: 'brandFont', sans-serif;
