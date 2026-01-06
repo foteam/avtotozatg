@@ -225,7 +225,10 @@ export default function AddCar({ user_id }) {
                 image: imageUrl,
                 isPrimary: form.isPrimary
             });
-
+            window.gtag("event", "add_car", {
+                brand: form.brand,
+                model: form.model
+            });
             navigate(-1);
         } catch (e) {
             alert(e?.response?.data?.message || "Xatolik yuz berdi");

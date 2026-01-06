@@ -97,7 +97,6 @@ export default function WashPage() {
             return res.data.user;
         }
     });
-
 // Автоматическая выдача промокодов
     useEffect(() => {
         if (!user) return;
@@ -123,6 +122,9 @@ export default function WashPage() {
         if (!user.promoCode) {
             applyPromo("2026");
         }
+        window.gtag("event", "start_booking_open_wash", {
+            wash_id: washData.name,
+        });
 
         // JUMA
         const today = new Date();
@@ -227,12 +229,18 @@ export default function WashPage() {
 
         onSuccess: ({ invoiceLink, paymentMethod }) => {
             if (paymentMethod === "card") {
+                window.gtag("event", "start_booking_open_payment", {
+                    wash_id: washData.name,
+                });
                 if (window.Telegram?.WebApp?.openInvoice) {
                     window.Telegram.WebApp.openInvoice(invoiceLink);
                 } else {
                     window.location.href = invoiceLink;
                 }
             } else {
+                window.gtag("event", "start_booking_success_cash", {
+                    wash_id: washData.name,
+                });
                 alert("✅ Buyurtma qabul qilindi. To‘lovni joyida amalga oshirasiz. Kelishni unutmang!");
                 navigate(-1);
             }
@@ -301,7 +309,6 @@ export default function WashPage() {
 
     const handleInput = (value) => {
         const formatted = formatCarNumber(value);
-
         setCarNumber(formatted);
 
         if (uzFormat1.test(formatted) || uzFormat2.test(formatted)) {
@@ -360,6 +367,16 @@ export default function WashPage() {
         }
 
         const finalPrice = getDiscountedPrice(Number(selectedPrice.price));
+
+        window.gtag("event", "start_booking_submit", {
+            wash_id: washData.name,
+            carNumber: carNumber,
+            priceType: `${selectedPrice.type} – ${selectedPrice.price}`,
+            slot: selectedSlot,
+            paymentMethod: paymentMethod,
+            phone: user.phone,
+
+        });
 
         bookingMutation.mutate({
             washId: washData._id,

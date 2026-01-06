@@ -12,6 +12,8 @@ import Garage from './pages/Garage/Garage'
 import CarDetail from './pages/Garage/CarScreen';
 import AddCar from './pages/Garage/AddCar.jsx';
 
+import { trackPage } from "./pages/analytics";
+
 import Eruda from 'eruda'
 
 import WebApp from "@twa-dev/sdk";
@@ -47,6 +49,15 @@ const fade = (delay = 0) => ({
         }
     }
 });
+function AnalyticsListener() {
+    const location = useLocation();
+
+    useEffect(() => {
+        trackPage(location.pathname);
+    }, [location]);
+
+    return null;
+}
 
 function AppWrapper() {
     const location = useLocation();
@@ -156,6 +167,7 @@ function AppWrapper() {
 export default function App() {
     return (
         <BrowserRouter>
+            <AnalyticsListener />
             <AppWrapper />
         </BrowserRouter>
     );
