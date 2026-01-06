@@ -15,6 +15,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import WebApp from "@twa-dev/sdk";
+import { trackEvent } from "./analytics.js";
 
 // Общий preset анимации
 const fade = (delay = 0) => ({
@@ -122,9 +123,6 @@ export default function WashPage() {
         if (!user.promoCode) {
             applyPromo("2026");
         }
-        window.gtag("event", "start_booking_open_wash", {
-            wash_id: washData.name,
-        });
 
         // JUMA
         const today = new Date();
@@ -140,6 +138,13 @@ export default function WashPage() {
         }
 
     }, [user, bookings]);
+    useEffect(() => {
+        if (!user || !washData) return;
+
+        trackEvent("start_booking_open_wash", {
+            wash_name: washData?.name
+        });
+    }, [user, washData]);
 
 // ================== ЗАГРУЗКА БРОНИРОВАНИЙ ПО СЛОТУ ==================
     const bookingsQuery = useQuery({
@@ -229,7 +234,7 @@ export default function WashPage() {
 
         onSuccess: ({ invoiceLink, paymentMethod }) => {
             if (paymentMethod === "card") {
-                window.gtag("event", "start_booking_open_payment", {
+                trackEvent("event", "start_booking_open_payment", {
                     wash_id: washData.name,
                 });
                 if (window.Telegram?.WebApp?.openInvoice) {
@@ -238,7 +243,7 @@ export default function WashPage() {
                     window.location.href = invoiceLink;
                 }
             } else {
-                window.gtag("event", "start_booking_success_cash", {
+                trackEvent("event", "start_booking_success_cash", {
                     wash_id: washData.name,
                 });
                 alert("✅ Buyurtma qabul qilindi. To‘lovni joyida amalga oshirasiz. Kelishni unutmang!");
@@ -368,7 +373,7 @@ export default function WashPage() {
 
         const finalPrice = getDiscountedPrice(Number(selectedPrice.price));
 
-        window.gtag("event", "start_booking_submit", {
+        trackEvent("event", "start_booking_submit", {
             wash_id: washData.name,
             carNumber: carNumber,
             priceType: `${selectedPrice.type} – ${selectedPrice.price}`,

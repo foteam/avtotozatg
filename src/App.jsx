@@ -53,9 +53,13 @@ function AnalyticsListener() {
     const location = useLocation();
 
     useEffect(() => {
-        trackPage(location.pathname);
-    }, [location]);
+        // небольшая задержка, чтобы gtag успел загрузиться
+        const t = setTimeout(() => {
+            trackPage(location.pathname);
+        }, 0);
 
+        return () => clearTimeout(t);
+    }, [location.pathname]);
     return null;
 }
 
@@ -144,6 +148,7 @@ function AppWrapper() {
 
             {/* === АНИМАЦИЯ ПЕРЕХОДОВ === */}
             <AnimatePresence mode="wait">
+
                 <Routes location={location} key={location.pathname}>
                     <Route path='/' element={<Home user_id={user?.id} />} />
                     <Route path='/wash/:id/:user_id' element={<WashPage />} />
