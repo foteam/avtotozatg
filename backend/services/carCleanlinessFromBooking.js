@@ -5,29 +5,27 @@ import User from "../models/user_model.js";
 function normalizePlate(plate = "") {
     return plate.replace(/\s+/g, "").toUpperCase();
 }
+function formatPlate(plate = "") {
+    if (plate.length === 8) {
+        return `${plate.slice(0,2)} ${plate.slice(2,3)} ${plate.slice(3,6)} ${plate.slice(6)}`;
+    }
+    if (plate.length === 7) {
+        return `${plate.slice(0,2)} ${plate.slice(2,5)} ${plate.slice(5)}`;
+    }
+    return plate;
+}
 export async function updateCarsCleanlinessFromBookings(bot) {
     const cars = await Car.find();
     const now = Date.now();
 
     for (const car of cars) {
 
-        const normalizedCarPlate = normalizePlate(car.plateNumber);
+        const normalizedCarPlate = formatPlate(car.plateNumber);
 
         // 🔍 ищем последнюю завершённую мойку
         const lastBooking = await Booking.findOne({
             status: "completed",
-            $expr: {
-                $eq: [
-                    {
-                        $replaceAll: {
-                            input: "$carNumber",
-                            find: " ",
-                            replacement: ""
-                        }
-                    },
-                    normalizedCarPlate
-                ]
-            }
+            carNumber: car.plateNumber
         }).sort({ updatedAt: -1 });
 
         // ❌ если вообще не мыли — считаем грязным
@@ -60,9 +58,9 @@ export async function updateCarsCleanlinessFromBookings(bot) {
         if (newCleanliness === 0) {
             const user = await User.findOne({ user_id: car.user_id });
             if (user) {
-                await bot.telegramSendMessage(
+                await bot.telegram.sendMessage(
                     user.user_id,
-                    `🚗 ${car.brand} ${car.model} juda iflos 😬  
+                    `🚗 ${car.plateNumber} juda iflos 😬  
 Avtomoykaga bron qiling!`
                 );
             }

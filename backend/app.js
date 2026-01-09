@@ -26,7 +26,8 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = config.PORT|| 5000;
-
+// Старт счетчик
+startCarCleanlinessCron();
 // Подключение к MongoDB
 mongoose.connect(config.MONGO_URI, {
     useNewUrlParser: true,
