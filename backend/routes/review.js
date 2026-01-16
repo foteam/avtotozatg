@@ -21,5 +21,25 @@ router.post('/', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+router.get('/:washId', async (req, res) => {
+    try {
+        const { washId } = req.params
+
+        const reviews = await Review.find({ wash: washId })
+            .sort({ createdAt: -1 }) // новые сверху
+            .lean()
+
+        res.json({
+            success: true,
+            count: reviews.length,
+            reviews,
+        })
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message,
+        })
+    }
+})
 
 export default router;
