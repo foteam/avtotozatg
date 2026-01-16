@@ -4,6 +4,7 @@ const { Schema, model } = mongoose;
 
 const userSchema = new Schema({
     user_id: { type: String, required: true, unique: true }, // user_id из Telegram
+    token: { type: String}, // Device token for mobile app
     name: { type: String, required: true },
     phone: { type: String },
     balance: { type: Number, default: 0 },

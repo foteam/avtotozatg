@@ -8,7 +8,7 @@ const router = express.Router();
 // Создать/зарегистрировать по льзователя
 router.post('/register', async (req, res) => {
     try {
-        const { user_id, name, phone, city, promoCode } = req.body;
+        const { user_id, name, phone, city, promoCode, token } = req.body;
         let user = await User.findOne({ user_id: user_id });
         let promocode = await Promo.findOne({promoCode: promoCode})
         console.log(`Promocode: ${promoCode}`)
@@ -16,7 +16,7 @@ router.post('/register', async (req, res) => {
             if (promoCode != null) {
                 promocode.inc('uses', 1)
             }
-            user = new User({ user_id, name, phone, city, promoCode, promoCodeDiscount: promocode?.discount || null });
+            user = new User({ user_id, name, phone, city, promoCode, promoCodeDiscount: promocode?.discount || null, token: token || null});
             await user.save();
             res.json(user);
         } else {
@@ -27,6 +27,27 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.post('/login', async (req, res) => {
+    try {
+        const { user_id, token } = req.body
+
+        const user = await User.findOne({ user_id })
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' })
+        }
+
+        // 👇 обновляем токен при каждом логине
+        if (token) {
+            user.token = token
+            await user.save()
+        }
+
+        res.json(user)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+})
 // 📋 Получить список автомобилей пользователя (Гараж)
 router.get('/garage/cars/:user_id', async (req, res) => {
     try {
