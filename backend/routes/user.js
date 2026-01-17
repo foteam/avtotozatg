@@ -161,7 +161,7 @@ router.post('/garage/car/add', async (req, res) => {
         // 4️⃣ Если авто делаем основным — снимаем флаг с других
         if (isPrimary === true) {
             await Car.updateMany(
-                { user_id: user._id },
+                { user_id: user.user_id },
                 { $set: { isPrimary: false } }
             );
         }

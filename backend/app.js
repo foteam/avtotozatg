@@ -7,6 +7,7 @@ import carWashRoutes from './routes/carWash.js';
 import bookingRoutes from './routes/booking.js';
 import reviewRoutes from './routes/review.js';
 import userRoutes from './routes/user.js';
+import paymeRoutes from './routes/payme.js';
 import carwashAdminRoutes from './routes/carwash_admin.js';
 import authRoutes from "./routes/auth.js";
 
@@ -319,6 +320,7 @@ app.use("/api/auth", authRoutes);
 app.use('/api/booking', bookingRoutes(bot));
 app.use('/api/review', reviewRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/payme', paymeRoutes);
 app.use('/api/admin/carwash', carwashAdminRoutes); // CARWASH AND OWNERS
 
 app.get('/', (req, res) => res.send('Server is running...'));
