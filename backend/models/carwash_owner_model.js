@@ -6,6 +6,8 @@ const OwnerSchema = new mongoose.Schema({
     user_id: { type: String, required: true },
     name: String,
     phone: String,
+    login: String,
+    password: String,
     carwash: { type: mongoose.Schema.Types.ObjectId, ref: "CarWash" },
 }, { timestamps: true });
 

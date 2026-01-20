@@ -11,6 +11,64 @@ import WashOwner from "../models/carwash_owner_model.js";
 
 const router = express.Router();
 
+// LOGIN OWNER (PLAIN PASSWORD - NOT SECURE)
+router.post('/login', async (req, res) => {
+    try {
+        const { login, password, businessType } = req.body;
+
+        if (!login || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Login and password required',
+            });
+        }
+
+        // 1️⃣ ищем владельца
+        const owner = await CarwashOwner.findOne({ login });
+
+        if (!owner) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid login or password',
+            });
+        }
+
+        // 2️⃣ проверяем пароль
+        if (owner.password !== password) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid login or password',
+            });
+        }
+
+        // 3️⃣ получаем автомойку
+        const carwash = await Carwash.findById(owner.carwash);
+
+        return res.json({
+            success: true,
+            owner,
+            carwash,
+        });
+
+    } catch (err) {
+        console.error('LOGIN ERROR:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+        });
+    }
+});
+
+router.get('/me/:ownerId', async (req, res) => {
+
+    const owner = await CarwashOwner.findById(req.params.ownerId);
+    if (!owner) {
+        return res.status(401).json({ success: false });
+    }
+    const carwash = await Carwash.findById(owner.carwash);
+    res.json({ success: true, owner, carwash });
+});
+
 //get carwash orders
 router.get('/get/orders/:_id', async (req, res) => {
     try {
