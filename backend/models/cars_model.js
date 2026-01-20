@@ -45,27 +45,10 @@ const CarSchema = new mongoose.Schema(
 
         bodyType: {
             type: String,
-            enum: [
-                "Sedan",
-                "Hatchback",
-                "Universal",
-                "SUV",
-                "Crossover",
-                "Pickup",
-                "Minivan"
-            ],
         },
 
         fuelType: {
             type: String,
-            enum: [
-                "Benzin",
-                "Gaz",
-                "Benzin + Gaz",
-                "Dizel",
-                "Elektr",
-                "Gibrid"
-            ],
         },
 
         // 🖼 Фото авто
@@ -86,6 +69,9 @@ const CarSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        isPremium: {
+            type: Boolean,
+        }
     },
     {
         timestamps: true, // createdAt / updatedAt

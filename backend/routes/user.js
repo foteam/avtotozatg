@@ -12,7 +12,7 @@ router.post('/register', async (req, res) => {
         let user = await User.findOne({ user_id: user_id });
         let promocode = await Promo.findOne({promoCode: promoCode})
         console.log(`Promocode: ${promoCode}`)
-        if (!user || !phone) {
+        if (!user) {
             if (promoCode != null) {
                 promocode.inc('uses', 1)
             }

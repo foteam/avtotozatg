@@ -8,6 +8,7 @@ const userSchema = new Schema({
     name: { type: String, required: true },
     phone: { type: String },
     balance: { type: Number, default: 0 },
+    country: { type: String },
     city: { type: String, required: true },
     promoCode: { type: String, default: "" },
     promoCodeDiscount: { type: Number, default: 0 },

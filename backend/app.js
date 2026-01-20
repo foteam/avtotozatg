@@ -121,7 +121,10 @@ async function runBroadcast(ctx, bot) {
                     parse_mode: "Markdown"
                 });
             }
-        } catch {}
+        } catch (err) {
+            console.log("BROADCAST ERROR:", err);
+            continue;
+        }
 
         await new Promise((r) => setTimeout(r, 40));
     }

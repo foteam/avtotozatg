@@ -8,9 +8,127 @@ import {sendSMS} from '../eskiz.js'
 import config from "../config.json" with {type: "json"};
 import WashOwner from "../models/carwash_owner_model.js";
 
+function generatePaymeLink({
+                               merchantId,
+                               orderId,
+                               amount,        // в сумах
+                               callbackUrl,   // опционально
+                           }) {
+    if (!merchantId) throw new Error('merchantId is required');
+    if (!orderId) throw new Error('orderId is required');
+    if (!amount || amount <= 0) throw new Error('amount must be > 0');
+
+    const TIYIN = 100;
+
+    let payload =
+        `m=${merchantId}` +
+        `;ac.order_id=${encodeURIComponent(orderId)}` +
+        `;a=${Math.round(amount * TIYIN)}`;
+
+    if (callbackUrl) {
+        payload += `;c=${encodeURIComponent(callbackUrl)}`;
+    }
+
+    const base64 = Buffer.from(payload).toString('base64');
+
+    return `https://checkout.paycom.uz/${base64}`;
+}
+
 export default (bot) => {
     const router = express.Router();
 
+    router.post('/from-app/create', async (req, res) => {
+        try {
+            const {
+                paymentMethod = "card",
+                priceType,
+                fromUser,
+                wash,
+                order_id,
+                slot,
+                carNumber,
+                lang
+            } = req.body;
+
+            console.log("CREATE BOOKING:", req.body);
+
+            // 1️⃣ Получаем пользователя и мойку
+            const user = await User.findOne({ user_id: fromUser });
+            const carwash = await Carwash.findById(wash);
+            const washOwner = await WashOwner.findOne({ carwash: carwash });
+
+            // 2️⃣ Парсим цену
+            const originalPrice = Number(priceType.split(" – ")[1]);
+            let finalPrice = originalPrice;
+
+            // ❗ СКИДКИ ТОЛЬКО ПРИ ОПЛАТЕ КАРТОЙ
+            if (
+                paymentMethod === "card" &&
+                user?.promoCodeDiscount > 0
+            ) {
+                finalPrice = Math.round(
+                    originalPrice * (1 - user.promoCodeDiscount / 100)
+                );
+            }
+
+            // 3️⃣ Создаём бронирование
+            const booking = new Booking({
+                ...req.body,
+                price: originalPrice,
+                status: paymentMethod === "cash"
+                    ? "pending"
+                    : "created"
+            });
+
+            await booking.save();
+            const newBooking = await Booking.findOne({order_id: order_id}).populate("wash")
+
+            // =========================
+            // 💵 НАЛИЧНЫЕ
+            // =========================
+            if (paymentMethod === "cash") {
+                // ---------- SEND TO TG INFO GROUP ----------
+                await bot.telegram.sendMessage(config.ADMIN_GROUP, `FROM APP SUCCESS ID #${booking.order_id}\n\nSumma: *${Number(booking.priceType.split(" – ")[1]).toLocaleString()} so'm*\n\nNaqd pul bilan to'lov!`, {parse_mode: "Markdown"})
+
+                // send booking info to client app
+                res.json({success: true, method: "cash", message: "Booking for cash method successfully created!", order_id: order_id, booking: newBooking})
+
+                // create new order booking to car wash admin app
+                await sendSMS(washOwner.phone, `AvtoToza. Sizning moykangizda yangi buyurtma! Avtomobil raqami: ${booking.carNumber} , tel: ${booking.phoneNumber} , vaqt: ${booking.slot}`);
+                // -------
+                return
+            }
+
+
+            // 4️⃣ Сбрасываем промокод ТОЛЬКО если была карта
+            if (user) {
+                user.promoCode = "";
+                user.promoCodeDiscount = 0;
+                await user.save();
+            }
+
+            // 5️⃣ Отдаём ссылку to App
+            let paymeLink = generatePaymeLink({
+                merchantId: "694e7e29ccaf6835002a6dda",
+                amount: finalPrice,
+                orderId: order_id,
+            })
+            res.json({
+                status: "success",
+                message: "Booking for card method successfully created and pending payment!",
+                booking: newBooking,
+                paymentLink: paymeLink,
+                order_id: order_id,
+            });
+
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                success: false,
+                error: err.message
+            });
+        }
+    })
     // Создать бронирование
     router.post('/create', async (req, res) => {
         try {
@@ -168,6 +286,15 @@ export default (bot) => {
         try {
             const bookings = await Booking.find().populate('wash');
             res.json(bookings);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+    // Получить все бронирования пользователя
+    router.get('/:booking_id/status', async (req, res) => {
+        try {
+            const bookings = await Booking.findOne({ order_id: req.params.booking_id }).populate('wash');
+            res.json({success: true, status: bookings.status});
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
