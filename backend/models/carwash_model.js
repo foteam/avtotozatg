@@ -23,6 +23,7 @@ const carWashSchema = new Schema({
         },
     ],
     reviews: [{ type: Schema.Types.ObjectId, ref: 'Review' }],
+    isOpen: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default model('CarWash', carWashSchema);

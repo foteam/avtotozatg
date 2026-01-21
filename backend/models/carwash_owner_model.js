@@ -9,6 +9,8 @@ const OwnerSchema = new mongoose.Schema({
     login: String,
     password: String,
     carwash: { type: mongoose.Schema.Types.ObjectId, ref: "CarWash" },
+    tokens: [String],
+    lang: { type: String }, // Device lang for mobile app
 }, { timestamps: true });
 
 export default model('carwashowner', OwnerSchema);

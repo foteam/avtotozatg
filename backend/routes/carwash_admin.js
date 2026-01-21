@@ -14,7 +14,7 @@ const router = express.Router();
 // LOGIN OWNER (PLAIN PASSWORD - NOT SECURE)
 router.post('/login', async (req, res) => {
     try {
-        const { login, password, businessType } = req.body;
+        const { login, password, businessType, pushToken } = req.body;
 
         if (!login || !password) {
             return res.status(400).json({
@@ -22,34 +22,38 @@ router.post('/login', async (req, res) => {
                 message: 'Login and password required',
             });
         }
+        if (businessType === "car_wash"){
+            // 1️⃣ ищем владельца
+            const owner = await CarwashOwner.findOne({ login });
 
-        // 1️⃣ ищем владельца
-        const owner = await CarwashOwner.findOne({ login });
+            if (!owner) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid login or password',
+                });
+            }
 
-        if (!owner) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid login or password',
+            // 2️⃣ проверяем пароль
+            if (owner.password !== password) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid login or password',
+                });
+            }
+            // push token
+            await CarwashOwner.updateOne(
+                { _id: owner._id },
+                { $addToSet: { tokens:  [pushToken]  } }
+            );
+            // 3️⃣ получаем автомойку
+            const carwash = await Carwash.findById(owner.carwash);
+
+            return res.json({
+                success: true,
+                owner,
+                carwash,
             });
         }
-
-        // 2️⃣ проверяем пароль
-        if (owner.password !== password) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid login or password',
-            });
-        }
-
-        // 3️⃣ получаем автомойку
-        const carwash = await Carwash.findById(owner.carwash);
-
-        return res.json({
-            success: true,
-            owner,
-            carwash,
-        });
-
     } catch (err) {
         console.error('LOGIN ERROR:', err);
         res.status(500).json({
@@ -97,39 +101,75 @@ router.put('/orders/:id/cancel', async (req, res) => {
 });
 router.put('/orders/:id/complete', async (req, res) => {
     try {
-        // 1. Обновляем заказ
-        const order = await Bookings.findByIdAndUpdate(
-            req.params.id,
-            { status: "completed" },
-            { new: true }
-        );
-
+        // 1. Находим заказ
+        const order = await Bookings.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
         }
 
-        // 2. Получаем мойку и владельца
-        const wash = await Wash.findById(order.wash);
-        const washOwner = await WashOwner.findOne({ carwash: order.wash });
-
-        try {
-            const washPhone = washOwner.phone.replace(/\D/g, "");
-            const washName = wash.name
-                .trim()
-                .replace(/\s+/g, "_");
-            // 3. Отправляем SMS
-            await sendSMS(order.phoneNumber, `AvtoToza. Hurmatli mijoz, #${order.order_id} sonli moykangiz tayyor bo'ldi! Olib ketishni unutmang! Moyka: ${washName} , tel: +${washPhone}`);
-            await sendSMS(order.phoneNumber, `AvtoToza ilovasi orqali har 10-chi moyka uchun 15% chegirma mavjud! Telegramda @avtotozabot deb qidiring!`);
-            console.log("SMS SENDED: " + order.phoneNumber);
-        } catch (err) {
-            console.error("SMS ERROR:", err);
+        // ❗ Защита от повторного завершения
+        if (order.status === 'completed') {
+            return res.status(400).json({ error: "Order already completed" });
         }
+
+        // 2. Находим мойку
+        const wash = await Wash.findById(order.wash);
+        if (!wash) {
+            return res.status(404).json({ error: "Wash not found" });
+        }
+
+        // 3. Цена услуги
+        const price = Number(order.priceType.split(' – ')[1]);
+        const commissionPercent = wash.comission; // например 10
+        const commissionAmount = price * commissionPercent / 100;
+
+        // 4. ЛОГИКА БАЛАНСА
+        if (order.status === 'paid') {
+            // 💳 КАРТА
+            // клиент заплатил приложению → начисляем мойке её долю
+            const forOwner = price - commissionAmount;
+            wash.balance += forOwner;
+        }
+
+        if (order.status === 'pending') {
+            // 💵 НАЛИЧКА
+            // клиент заплатил мойке → удерживаем комиссию
+            wash.balance -= commissionAmount;
+        }
+
+        await wash.save();
+
+        // 5. Завершаем заказ
+        order.status = 'completed';
+        await order.save();
+
+        // 6. SMS
+        try {
+            const washOwner = await WashOwner.findOne({ carwash: wash._id });
+            const washPhone = washOwner?.phone?.replace(/\D/g, "") || "";
+            const washName = wash.name.trim().replace(/\s+/g, "_");
+
+            await sendSMS(
+                order.phoneNumber,
+                `AvtoToza. Hurmatli mijoz, #${order.order_id} sonli moykangiz tayyor bo'ldi! Moyka: ${washName}, tel: +${washPhone}`
+            );
+
+            await sendSMS(
+                order.phoneNumber,
+                `AvtoToza ilovasi orqali har 10-chi moyka uchun 15% chegirma mavjud! Telegramda @avtotozabot`
+            );
+        } catch (smsErr) {
+            console.error("SMS ERROR:", smsErr);
+        }
+
         res.json({ success: true, order });
 
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
+
 // UPDATE carwash
 router.put('/update/:user_id', async (req, res) => {
     try {
@@ -177,7 +217,7 @@ router.post("/payout/:washid", async (req, res) => {
 // Create payout for car wash
 router.post("/withdraw", async (req, res) => {
     try {
-        const { carwash_id, amount } = req.body;
+        const { carwash_id, amount, card } = req.body;
 
         if (!carwash_id || !amount || amount <= 0) {
             return res.status(400).json({ error: "Некорректные данные" });
@@ -196,6 +236,7 @@ router.post("/withdraw", async (req, res) => {
             trans_id: trans_id,
             wash: wash._id,
             amount: amount,
+            card: card,
             status: "pending", // сначала pending
         });
 
