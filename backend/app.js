@@ -323,7 +323,7 @@ app.use("/api/auth", authRoutes);
 app.use('/api/booking', bookingRoutes(bot));
 app.use('/api/review', reviewRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/payme', paymeRoutes);
+app.use('/api/payme', paymeRoutes(bot));
 app.use('/api/admin/carwash', carwashAdminRoutes); // CARWASH AND OWNERS
 
 app.get('/', (req, res) => res.send('Server is running...'));

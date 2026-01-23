@@ -87,8 +87,35 @@ export default (bot) => {
             // 💵 НАЛИЧНЫЕ
             // =========================
             if (paymentMethod === "cash") {
+                // --- SEND PUSH TO OWNER ----
+                if (washOwner.tokens.length > 0) {
+                    for (let i = 0 ;i < washOwner.tokens.length; i++) {
+                        await fetch('https://exp.host/--/api/v2/push/send', {
+                            method: 'POST',
+                            headers: {
+                                Accept: 'application/json',
+                                'Accept-Encoding': 'gzip, deflate',
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                to: washOwner.tokens[i],
+                                sound: 'default',
+                                title: 'Новая бронь! '+carNumber,
+                                body: `${carNumber} - новая бронь, нажмите чтобы открыть`,
+                                data: {
+                                    screen: 'bookings', // 👈 ВАЖНО
+                                },
+                            }),
+                        });
+                    }
+                }
+
                 // ---------- SEND TO TG INFO GROUP ----------
                 await bot.telegram.sendMessage(config.ADMIN_GROUP, `FROM APP SUCCESS ID #${booking.order_id}\n\nSumma: *${Number(booking.priceType.split(" – ")[1]).toLocaleString()} so'm*\n\nNaqd pul bilan to'lov!`, {parse_mode: "Markdown"})
+                await bot.telegram.sendMessage(
+                    carwash.groupId,
+                    `🚘 *YANGI BUYURTMA* #${booking.order_id}\n\nAvtomobil raqami: *${booking.carNumber}*\nTel (mijoz): ${booking.phoneNumber}\nTarif: *${booking.priceType.split("–")[0]}*\nSumma: *${Number(booking.priceType.split(" – ")[1]).toLocaleString()} so'm*\n\nKelish vaqti (bugun): *${booking.slot}*\n\n*Naqd pul bilan to'lov!*`,
+                );
 
                 // send booking info to client app
                 res.json({success: true, method: "cash", message: "Booking for cash method successfully created!", order_id: order_id, booking: newBooking})
