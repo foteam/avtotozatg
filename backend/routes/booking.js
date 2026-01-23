@@ -113,6 +113,8 @@ export default (bot) => {
                 amount: finalPrice,
                 orderId: order_id,
             })
+            newBooking.paymentLink = paymeLink;
+            await newBooking.save();
             res.json({
                 status: "success",
                 message: "Booking for card method successfully created and pending payment!",

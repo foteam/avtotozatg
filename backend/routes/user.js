@@ -278,7 +278,7 @@ router.get('/bookings/get/:user_id', async (req, res) => {
     console.log("Checking and sending user bookings data for: " + req.params.user_id);
     try {
         const user = await User.findOne({ user_id: req.params.user_id });
-        const bookings = await Booking.find({fromUser: user.user_id})
+        const bookings = await Booking.find({fromUser: user.user_id}).populate('wash');
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (!bookings) return res.status(404).json({ error: 'Bookings not found' });
         res.json({exists: true, bookings: bookings});

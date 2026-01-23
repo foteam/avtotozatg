@@ -14,6 +14,7 @@ const bookingSchema = new Schema({
     priceType: { type: String, required: true },
     phoneNumber: { type: String, default: "admin" }, // админская бронь не требует телефона
     slot: { type: String, required: true },
+    paymentLink: { type: String },
 
     status: { type: String, default: 'pending' }, // pending, paid, canceled, completed
 
