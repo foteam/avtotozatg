@@ -115,6 +115,15 @@ export default (bot) => {
                 await bot.telegram.sendMessage(
                     carwash.groupId,
                     `🚘 *YANGI BUYURTMA* #${booking.order_id}\n\nAvtomobil raqami: *${booking.carNumber}*\nTel (mijoz): ${booking.phoneNumber}\nTarif: *${booking.priceType.split("–")[0]}*\nSumma: *${Number(booking.priceType.split(" – ")[1]).toLocaleString()} so'm*\n\nKelish vaqti (bugun): *${booking.slot}*\n\n*Naqd pul bilan to'lov!*`,
+                    {
+                        parse_mode: "Markdown",
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "Bajarildi", callback_data: "completed:" + booking.order_id }],
+                                [{ text: "Bekor qilish", callback_data: "cancel:" + booking.order_id }]
+                            ]
+                        }
+                    }
                 );
 
                 // send booking info to client app

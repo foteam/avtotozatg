@@ -270,6 +270,10 @@ bot.action(/^completed:(.+)$/, async (ctx) => {
         let price = Number(order.priceType.split(" – ")[1]);
         let net = price - (price * wash.comission / 100)
         await wash.inc("balance", net)
+    } else if (order.status === "pending"){
+        let price = Number(order.priceType.split(" – ")[1]);
+        let ownerDec = price * wash.comission / 100
+        await wash.inc("balance", ownerDec)
     }
 
     // Обновляем статус заказа
