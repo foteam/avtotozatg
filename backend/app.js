@@ -21,6 +21,7 @@ import config from "./config.json" with {type: "json"};
 import { startCarCleanlinessCron } from "./cron/carCleanliness.cron.js";
 
 import {sendSMS} from './eskiz.js'
+import {notifyUser} from "./services/push/notification.service.js";
 
 const app = express();
 app.use(cors());
@@ -255,7 +256,7 @@ bot.on('message', async (ctx) => {
 });
 bot.action(/^completed:(.+)$/, async (ctx) => {
     const order_id = ctx.match[1];
-    const order = await Booking.findOne({order_id: order_id});
+    const order = await Booking.findOne({order_id: order_id}).populate('wash');
     if (!order) {return}
     if (order.status === "completed") {return ctx.replyWithMarkdown("Ushbu buyurtma bajarilgan!");}
     const user = await User.findOne({user_id: order.fromUser});
@@ -273,8 +274,42 @@ bot.action(/^completed:(.+)$/, async (ctx) => {
     } else if (order.status === "pending"){
         let price = Number(order.priceType.split(" – ")[1]);
         let ownerDec = price * wash.comission / 100
-        await wash.inc("balance", ownerDec)
+        await wash.dec("balance", ownerDec)
     }
+
+    let notificationTitle = `Booking ${order.carNumber} is completed!`
+    let notificationDescription = `${wash?.name} - completed your car wash!`
+    switch (user?.lang){
+        case 'en':
+        {
+            notificationTitle = `Booking ${order.carNumber} is completed!`
+            notificationDescription = `${wash?.name} - completed your car wash!`
+            break;
+        }
+        case 'ru':
+        {
+            notificationTitle = `Бронь ${order.carNumber} выпелнено`
+            notificationDescription = `${wash?.name} - закончил Ваш заказ и ждет вас!`
+            break
+        }
+        case "uz-Latn":
+        {
+            notificationTitle = `Bron ${order.carNumber} yakunlandi`
+            notificationDescription = `${wash?.name} - yakunladi va sizni kutmoqda!`
+            break;
+        }
+        case "uz-Cyrl":
+        {
+            notificationTitle = `Брон ${order.carNumber} якунланди`
+            notificationDescription = `${wash?.name} - якунлади ва сизни кутмоқда!`
+            break;
+        }
+    }
+    await notifyUser({
+        userId: user.user_id,
+        title: notificationTitle,
+        body: notificationDescription,
+    })
 
     // Обновляем статус заказа
     order.status = "completed";  // или "done", в зависимости от схемы

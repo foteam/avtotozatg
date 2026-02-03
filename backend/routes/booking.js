@@ -7,6 +7,7 @@ import Promo from '../models/promocode_model.js'
 import {sendSMS} from '../eskiz.js'
 import config from "../config.json" with {type: "json"};
 import WashOwner from "../models/carwash_owner_model.js";
+import NotificationsModel from '../models/notifications.js';
 
 function generatePaymeLink({
                                merchantId,

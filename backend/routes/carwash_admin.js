@@ -8,6 +8,8 @@ import Payouts from '../models/payout_model.js'
 import {sendSMS} from "../eskiz.js";
 import Wash from "../models/carwash_model.js";
 import WashOwner from "../models/carwash_owner_model.js";
+import NotificationsModel from '../models/notifications.js';
+import {notifyUser} from "../services/push/notification.service.js";
 
 const router = express.Router();
 
@@ -102,10 +104,47 @@ router.put('/orders/:id/cancel', async (req, res) => {
 router.put('/orders/:id/complete', async (req, res) => {
     try {
         // 1. Находим заказ
-        const order = await Bookings.findById(req.params.id);
+        const order = await Bookings.findById(req.params.id).populate('wash');
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
         }
+
+        const user = await User.findOne({user_id: order.fromUser})
+
+        // CREATE NOTIFICATION MESSAGE
+        let notificationTitle = `Booking ${order.carNumber} is completed!`
+        let notificationDescription = `${order.wash?.name} - completed your car wash!`
+        switch (user?.lang){
+            case 'en':
+            {
+                notificationTitle = `Booking ${order.carNumber} is completed!`
+                notificationDescription = `${order.wash?.name} - completed your car wash!`
+                break;
+            }
+            case 'ru':
+            {
+                notificationTitle = `Бронь ${order.carNumber} выпелнено`
+                notificationDescription = `${order.wash?.name} - закончил Ваш заказ и ждет вас!`
+                break
+            }
+            case "uz-Latn":
+            {
+                notificationTitle = `Bron ${order.carNumber} yakunlandi`
+                notificationDescription = `${order.wash?.name} - yakunladi va sizni kutmoqda!`
+                break;
+            }
+            case "uz-Cyrl":
+            {
+                notificationTitle = `Брон ${order.carNumber} якунланди`
+                notificationDescription = `${order.wash?.name} - якунлади ва сизни кутмоқда!`
+                break;
+            }
+        }
+        await notifyUser({
+            userId: order.fromUser,
+            title: notificationTitle,
+            body: notificationDescription,
+        })
 
         // ❗ Защита от повторного завершения
         if (order.status === 'completed') {

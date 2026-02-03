@@ -3,12 +3,14 @@ import User from '../models/user_model.js';
 import Booking from '../models/booking_model.js';
 import Promo from '../models/promocode_model.js'
 import Car from '../models/cars_model.js';
+import Notifications from '../models/notifications.js'
+import {notifyUser} from "../services/push/notification.service.js";
 const router = express.Router();
 
 // Создать/зарегистрировать по льзователя
 router.post('/register', async (req, res) => {
     try {
-        const { user_id, name, phone, city, promoCode, token } = req.body;
+        const { user_id, name, phone, city, promoCode, token, lang } = req.body;
         let user = await User.findOne({ user_id: user_id });
         let promocode = await Promo.findOne({promoCode: promoCode})
         console.log(`Promocode: ${promoCode}`)
@@ -16,7 +18,40 @@ router.post('/register', async (req, res) => {
             if (promoCode != null) {
                 promocode.inc('uses', 1)
             }
-            user = new User({ user_id, name, phone, city, promoCode, promoCodeDiscount: promocode?.discount || null, token: token || null});
+            user = new User({ user_id, name, phone, city, promoCode, promoCodeDiscount: promocode?.discount || null, token: token || null, lang: lang });
+            let notificationTitle = `Welcome to AvtoToza!`
+            let notificationDescription = `You can booking car wash here in 30 seconds!`
+            switch (user?.lang){
+                case 'en':
+                {
+                    notificationTitle = `Welcome to AvtoToza!`
+                    notificationDescription = `You can booking car wash here in 30 seconds!`
+                    break;
+                }
+                case 'ru':
+                {
+                    notificationTitle = `Добро пожаловать в AvtoToza!`
+                    notificationDescription = `Здесь вы можете забронировать мойку за 30 секунд!`
+                    break
+                }
+                case "uz-Latn":
+                {
+                    notificationTitle = `AvtoTozaga xush kelibsiz!`
+                    notificationDescription = `Bu yerda siz 30 soniya ichida moykaxonani bron qilsihingiz mumkin!`
+                    break;
+                }
+                case "uz-Cyrl":
+                {
+                    notificationTitle = `AvtoTozaга хуш келибсиз!`
+                    notificationDescription = `Бу ерда сиз 30 сония ичида мойкахонани брон қилишингиз мумкин!`
+                    break;
+                }
+            }
+            await notifyUser({
+                userId: user.user_id,
+                title: notificationTitle,
+                body: notificationDescription,
+            })
             await user.save();
             res.json(user);
         } else {
@@ -30,7 +65,7 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     try {
-        const { user_id, token } = req.body
+        const { user_id, token, lang } = req.body
 
         const user = await User.findOne({ user_id })
         if (!user) {
@@ -40,14 +75,86 @@ router.post('/login', async (req, res) => {
         // 👇 обновляем токен при каждом логине
         if (token) {
             user.token = token
+            user.lang = lang
             await user.save()
         }
+
+        console.log("LOGIN LANG: " + user?.lang)
+        console.log("LOGIN RESIVE PUSH TOKEN: " + token)
+        console.log("LOGIN RESIVE LANG: " + lang)
+
+        let notificationTitle = `Welcome to AvtoToza!`
+        let notificationDescription = `You can booking car wash here in 30 seconds!`
+        switch (user?.lang){
+            case 'en':
+            {
+                notificationTitle = `Welcome to AvtoToza!`
+                notificationDescription = `You can booking car wash here in 30 seconds!`
+                break;
+            }
+            case 'ru':
+            {
+                notificationTitle = `Добро пожаловать в AvtoToza!`
+                notificationDescription = `Здесь вы можете забронировать мойку за 30 секунд!`
+                break
+            }
+            case "uz-Latn":
+            {
+                notificationTitle = `AvtoTozaga xush kelibsiz!`
+                notificationDescription = `Bu yerda siz 30 soniya ichida moykaxonani bron qilsihingiz mumkin!`
+                break;
+            }
+            case "uz-Cyrl":
+            {
+                notificationTitle = `AvtoTozaга хуш келибсиз!`
+                notificationDescription = `Бу ерда сиз 30 сония ичида мойкахонани брон қилишингиз мумкин!`
+                break;
+            }
+        }
+        await notifyUser({
+            userId: user.user_id,
+            title: notificationTitle,
+            body: notificationDescription,
+        })
 
         res.json(user)
     } catch (err) {
         res.status(500).json({ error: err.message })
     }
 })
+// Get all notifications
+router.get('/notifications/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+
+        // 1️⃣ Проверяем пользователя
+        const user = await User.findOne({ user_id });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+
+        // 2️⃣ Get notification
+        const notifications = await Notifications.find({ userId: user_id })
+            .sort({ createdAt: -1}) // основной сверху
+            .lean();
+
+        res.json({
+            success: true,
+            count: notifications.length,
+            notifications
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
 // 📋 Получить список автомобилей пользователя (Гараж)
 router.get('/garage/cars/:user_id', async (req, res) => {
     try {

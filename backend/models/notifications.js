@@ -2,11 +2,16 @@
 
 const { Schema, model } = mongoose;
 
-const notificationsScheme = new Schema({
+const NotificationSchema = new Schema({
+    userId: { type: String, required: true },
+
     title: { type: String, required: true },
-    description: { type: String, required: true },
-    banner: { type: String },
-    checked: Boolean
+    body: { type: String, required: true },
+
+    data: { type: Object, default: {} }, // deep-link, screen, bookingId
+    badge: { type: Number, default: 0 },
+
+    checked: { type: Boolean, default: false }
 }, { timestamps: true });
 
-export default model('Notifications', notificationsScheme);
+export default model('Notification', NotificationSchema);
