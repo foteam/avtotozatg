@@ -81,6 +81,34 @@ router.get('/garage/cars/:user_id', async (req, res) => {
         });
     }
 });
+// Delete account
+router.get('/delete/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+
+        // 1️⃣ Находим автомобиль
+        const user = await User.deleteOne({user_id: user_id});
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Account не найден'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `${user_id} successfully deleted`,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
 // 🚙 Получить данные автомобиля по ID
 router.get('/garage/car/:carId', async (req, res) => {
     try {
